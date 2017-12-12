@@ -76,8 +76,10 @@ int main( int argc, char** argv )
         return -1;
     }
     printf("here\n");
-    
+    int count = 0;
+    char buf[100];
     for(;;) {
+        int64 start = cv::getTickCount();
         cap >> frame;
         if (frame.empty()) {
             break;
@@ -87,11 +89,12 @@ int main( int argc, char** argv )
         int height = gray.size().height;
         int channels = 1;
 
-        printf("width %d, height %d\n", width, height);
         bm3d.realtime_denoise(gray.data, output_frame.data);
         imshow("video", output_frame);
         imshow("original", frame);
-        waitKey(50);
+        waitKey(20);
+        double fps = cv::getTickFrequency() / (cv::getTickCount() - start);
+        printf("FPS: %f\n", fps);
     }
     return 0;
 }
