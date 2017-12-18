@@ -56,6 +56,16 @@ void denoise_image() {
     waitKey();
 }
 
+string get_num(int i) {
+    if (i < 10) {
+        return "00"+to_string(i);
+    } else if (i < 100) {
+        return "0"+to_string(i);
+    } else {
+        return to_string(i);
+    }
+}
+
 int main( int argc, char** argv )
 {
     // denoise_image();
@@ -77,7 +87,6 @@ int main( int argc, char** argv )
     }
     printf("here\n");
     int count = 0;
-    char buf[100];
     for(;;) {
         int64 start = cv::getTickCount();
         cap >> frame;
@@ -95,6 +104,7 @@ int main( int argc, char** argv )
         waitKey(20);
         double fps = cv::getTickFrequency() / (cv::getTickCount() - start);
         printf("FPS: %f\n", fps);
+        count++;
     }
     return 0;
 }
