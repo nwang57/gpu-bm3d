@@ -246,6 +246,14 @@ void Bm3d::copy_image_to_device(uchar *src_image) {
 void Bm3d::free_device_params() {
     if (d_noisy_image) {
         cudaFree(d_noisy_image);
+        cudaFree(d_stacks);
+        cudaFree(d_numerator);
+        cudaFree(d_denominator);
+        cudaFree(d_num_patches_in_stack);
+        cudaFree(d_transformed_stacks);
+        cudaFree(d_wien_weight);
+        cudaFree(d_weight);
+        cudaFree(d_wien_coef);
     }
 }
 
@@ -256,7 +264,7 @@ void Bm3d::clean_up_buffer() {
     // cudaMemset(d_stacks, 0, sizeof(Q) * total_ref_patches * h_fst_step_params.max_group_size);
     // cudaMemset(d_num_patches_in_stack, 0, sizeof(uint) * total_ref_patches);
     cudaMemset(d_transformed_stacks, 0, sizeof(cufftComplex) * h_fst_step_params.patch_size * h_fst_step_params.patch_size * h_fst_step_params.max_group_size * total_ref_patches);
-    
+
     cudaMemset(d_weight, 0, sizeof(float) * total_ref_patches);
     cudaMemset(d_wien_coef, 0, sizeof(float) * h_fst_step_params.patch_size * h_fst_step_params.patch_size * h_fst_step_params.max_group_size * total_ref_patches);
     cudaMemset(d_wien_weight, 0, sizeof(float) * total_ref_patches);
@@ -265,10 +273,14 @@ void Bm3d::clean_up_buffer() {
 }
 
 void Bm3d::set_up_realtime(int width, int height, int channels) {
+    Stopwatch init;
+    init.start();
     h_width = width;
     h_height = height;
     h_channels = channels;
     set_device_param();
+    init.stop();
+    printf("Initialization time: %f\n", init.getSeconds());
 }
 
 /*
@@ -277,12 +289,16 @@ void Bm3d::set_up_realtime(int width, int height, int channels) {
 void Bm3d::realtime_denoise(uchar *src_image,
                             uchar *dst_image
                             ) {
+    Stopwatch total;
+    total.start();
     copy_image_to_device(src_image);
     clean_up_buffer();
     denoise_fst_step();
     cudaMemset(d_transformed_stacks, 0, sizeof(cufftComplex) * h_fst_step_params.patch_size * h_fst_step_params.patch_size * h_fst_step_params.max_group_size * total_ref_patches);
     denoise_2nd_step();
     cudaMemcpy(dst_image, d_denoised_image, sizeof(uchar) * h_width * h_height, cudaMemcpyDeviceToHost);
+    total.stop();
+    printf("Total computation time: %f\n", total.getSeconds());
 }
 
 /*
@@ -336,67 +352,109 @@ void Bm3d::denoise(uchar *src_image,
  */
 void Bm3d::denoise_fst_step() {
     //Block matching, each thread maps to a ref patch
+    Stopwatch bm, ab, ht, agg, total;
+    total.start();
+    bm.start();
     do_block_matching(d_noisy_image, h_fst_step_params.distance_threshold_1);
-
+    bm.stop();
     //gather patches
+    ab.start();
     arrange_block(d_noisy_image);
-
+    ab.stop();
     // perform 3D dct transform;
 
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_FORWARD) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: 3D Forward failed");
         return;
     }
-
+    ht.start();
     // hard thresholding and normalize
     hard_threshold();
-
+    ht.stop();
     // perform inverse 3D dct transform;
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_INVERSE) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: 3D inverse failed");
         return;
     }
+
+    agg.start();
     // Need to normalize 3D inverse result by dividing patch_size * patch_size
     // aggregate to single image by writing into buffer
     do_aggregation(d_weight);
+    agg.stop();
+    total.stop();
+    printf("Block matching takes: %f\n", bm.getSeconds());
+    printf("Arrange block takes: %f\n", ab.getSeconds());
+    printf("Threshold takes: %f\n", ht.getSeconds());
+    printf("Aggregation takes: %f\n", agg.getSeconds());
+    printf("First step takes: %f\n", total.getSeconds());
 }
 
 /*
  * Perform the second step denoise
  */
 void Bm3d::denoise_2nd_step() {
+    Stopwatch bm, ab, coef, ht, agg, total;
+    total.start();
+    bm.start();
     //Block matching estimate image, each thread maps to a ref patch
     do_block_matching(d_denoised_image, h_fst_step_params.distance_threshold_2);
+    bm.stop();
+
+    ab.start();
     //gather patches for estimate image
     arrange_block(d_denoised_image);
+    ab.stop();
+
     // perform 3d transform for estimate groups
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_FORWARD) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: 3D Forward failed");
         return;
     }
+
+    coef.start();
     // calculate Wiener coefficient for each estimate group
     cal_wiener_coef();
+    coef.stop();
+
+    ab.start();
     // gather noisy image patches according to estimate block matching result
     arrange_block(d_noisy_image);
+    ab.stop();
     // perform 3d transform on original image
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_FORWARD) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: 3D Forward failed");
         return;
     }
+
+    ht.start();
     // apply wiener coefficient to each group of transformed noisy data
     apply_wien_filter();
+    ht.stop();
+
     // inverse 3d transform
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_INVERSE) != CUFFT_SUCCESS) {
         fprintf(stderr, "CUFFT error: 3D Forward failed");
         return;
     }
+
+    agg.start();
     // aggregate to single image by writing into buffer
     do_aggregation(d_wien_weight);
+    agg.stop();
+
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
         fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(code));
         return;
     }
+
+    printf("Block matching takes: %f\n", bm.getSeconds());
+    printf("Arrange block takes: %f\n", ab.getSeconds());
+    printf("Coefficient takes: %f\n", coef.getSeconds());
+    printf("Threshold takes: %f\n", ht.getSeconds());
+    printf("Aggregation takes: %f\n", agg.getSeconds());
+    printf("Second step takes: %f\n", total.getSeconds());
 }
 
 void Bm3d::test_block_matching(uchar *input_image, int width, int height) {
