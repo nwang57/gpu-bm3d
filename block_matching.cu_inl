@@ -172,9 +172,9 @@ __global__ void block_matching2(
     int num_q_per_thread = max(1, size / blockDim.x);
     int tid = threadIdx.x;
 
-    // extern __shared__ Q s_data[]; // to store the distance and the position
-    // printf("bid %d creating share total ref: %d\n", bid, gridDim.x);
-    // Q min_stack(0,0,0xFFFFFFFF);
+    extern __shared__ Q s_data[]; // to store the distance and the position
+    printf("bid %d creating share total ref: %d\n", bid, gridDim.x);
+    Q min_stack(0,0,0xFFFFFFFF);
     // for (uint i = tid * num_q_per_thread; i < min(size, (tid+1) * num_q_per_thread); i++) {
     //     int x = (i % q_width) + q.x;
     //     int y = (i / q_width) + q.y;
@@ -186,7 +186,7 @@ __global__ void block_matching2(
     // }
     // s_data[tid] = min_stack;
     // __syncthreads();
-    if (bid == 8452 && threadIdx.x == 0) {
+    if (bid == 16128 && threadIdx.x == 0) {
         // printf("Tid: %d, x(%d), y(%d), dist(%d)\n", tid, min_stack.position.x, min_stack.position.y, min_stack.distance);
         printf("bid %d, ref_x %d, ref_y %d\n", bid, ref_x, ref_y);
         printf("total blocks %d\n", gridDim.x);
