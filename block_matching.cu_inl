@@ -165,12 +165,12 @@ __global__ void block_matching2(
     int end_x = min(image_dim.x - patch_dim, ref_x + match_radius);
     int end_y = min(image_dim.y - patch_dim, ref_y + match_radius);
 
-    // // each thread will find the most similar patch in the shared memory for reduction
-    // int q_width = (end_x - q.x);
-    // int q_height = (end_y - q. y);
-    // int size = q_width * q_height;
-    // int num_q_per_thread = max(1, size / blockDim.x);
-    // int tid = threadIdx.x;
+    // each thread will find the most similar patch in the shared memory for reduction
+    int q_width = (end_x - q.x);
+    int q_height = (end_y - q.y);
+    int size = q_width * q_height;
+    int num_q_per_thread = max(1, size / blockDim.x);
+    int tid = threadIdx.x;
 
     // extern __shared__ Q s_data[]; // to store the distance and the position
     // printf("bid %d creating share total ref: %d\n", bid, gridDim.x);
@@ -186,8 +186,10 @@ __global__ void block_matching2(
     // }
     // s_data[tid] = min_stack;
     // __syncthreads();
-    if (bid == 13970 && threadIdx.x == 0) {
+    if (bid == 8452 && threadIdx.x == 0) {
         // printf("Tid: %d, x(%d), y(%d), dist(%d)\n", tid, min_stack.position.x, min_stack.position.y, min_stack.distance);
         printf("bid %d, ref_x %d, ref_y %d\n", bid, ref_x, ref_y);
+        printf("total blocks %d\n", gridDim.x);
+        printf("patches in a block %d\n", size);
     }
 }
