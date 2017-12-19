@@ -184,12 +184,13 @@ __global__ void block_matching2(
             min_stack.distance = dist;
         }
     }
-    // s_data[tid] = min_stack;
+    s_data[tid] = min_stack;
     __syncthreads();
     if (bid == 16128 && threadIdx.x == 0) {
         printf("Tid: %d, x(%d), y(%d), dist(%d)\n", tid, min_stack.position.x, min_stack.position.y, min_stack.distance);
         printf("bid %d, ref_x %d, ref_y %d\n", bid, ref_x, ref_y);
         printf("total blocks %d\n", gridDim.x);
         printf("patches in a block %d, patch per thread %d\n", size, num_q_per_thread);
+        printf("q range (%d, %d) - (%d, %d)\n", q.x, q.y, end_x, end_y);
     }
 }
