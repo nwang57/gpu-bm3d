@@ -44,6 +44,8 @@ struct Params
 struct Q {
     uint distance;
     uint2 position;
+
+    __host__ __device__ Q(uint x, uint y, uint val) : position(make_uint2(x,y)), distance(val) ;
 };
 
 #endif

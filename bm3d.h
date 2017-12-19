@@ -92,6 +92,8 @@ public:
 
     void do_block_matching(uchar*, const uint);
 
+    void do_block_matching2(uchar* input_image, const uint distance_threshold);
+
     void do_aggregation(float*);
 
     void hard_threshold();

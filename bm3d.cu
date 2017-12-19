@@ -690,6 +690,16 @@ void Bm3d::do_block_matching(uchar* input_image, const uint distance_threshold) 
     // printf("Block Matching: %f\n", bm_time.getSeconds());
 }
 
+void Bm3d::do_block_matching2(uchar* input_image, const uint distance_threshold) {
+    Stopwatch bm_time;
+    bm_time.start();
+    const int threads_per_block = 256;
+    block_matching2<<<total_ref_patches, threads_per_block>>>(d_stacks, d_num_patches_in_stack, input_image, distance_threshold);
+    cudaDeviceSynchronize();
+    bm_time.stop();
+    // printf("Block Matching: %f\n", bm_time.getSeconds());
+}
+
 void Bm3d::hard_threshold() {
     Stopwatch hard_threshold;
     hard_threshold.start();
