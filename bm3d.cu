@@ -361,7 +361,7 @@ void Bm3d::denoise_fst_step() {
     Stopwatch bm, ab, ht, agg, total;
     total.start();
     bm.start();
-    do_block_matching(d_noisy_image, h_fst_step_params.distance_threshold_1);
+    do_block_matching2(d_noisy_image, h_fst_step_params.distance_threshold_1);
     bm.stop();
     //gather patches
     ab.start();
@@ -699,7 +699,7 @@ void Bm3d::do_block_matching(uchar* input_image, const uint distance_threshold) 
 void Bm3d::do_block_matching2(uchar* input_image, const uint distance_threshold) {
     Stopwatch bm_time;
     bm_time.start();
-    const int threads_per_block = 256;
+    const int threads_per_block = 512;
     block_matching2<<<total_ref_patches, threads_per_block>>>(d_stacks, d_num_patches_in_stack, input_image, distance_threshold);
     cudaDeviceSynchronize();
     bm_time.stop();
