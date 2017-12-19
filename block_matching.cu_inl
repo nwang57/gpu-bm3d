@@ -152,18 +152,18 @@ __global__ void block_matching2(
     const uint width = (image_dim.x - patch_dim) / ref_stride + 1;
 
     int bid = blockIdx.x;
-    // int ref_x = (bid % width) * ref_stride;
-    // int ref_y = (bid / width) * ref_stride;
-    // if (ref_x > image_dim.x - patch_dim)
-    //     ref_x = image_dim.x - patch_dim;
-    // if (ref_y > image_dim.y - patch_dim)
-    //     ref_y = image_dim.y - patch_dim;
+    int ref_x = (bid % width) * ref_stride;
+    int ref_y = (bid / width) * ref_stride;
+    if (ref_x > image_dim.x - patch_dim)
+        ref_x = image_dim.x - patch_dim;
+    if (ref_y > image_dim.y - patch_dim)
+        ref_y = image_dim.y - patch_dim;
 
-    // uint2 q;
-    // q.x = ref_x > match_radius ? ref_x - match_radius : 0;
-    // q.y = ref_y > match_radius ? ref_y - match_radius : 0;
-    // int end_x = min(image_dim.x - patch_dim, ref_x + match_radius);
-    // int end_y = min(image_dim.y - patch_dim, ref_y + match_radius);
+    uint2 q;
+    q.x = ref_x > match_radius ? ref_x - match_radius : 0;
+    q.y = ref_y > match_radius ? ref_y - match_radius : 0;
+    int end_x = min(image_dim.x - patch_dim, ref_x + match_radius);
+    int end_y = min(image_dim.y - patch_dim, ref_y + match_radius);
 
     // // each thread will find the most similar patch in the shared memory for reduction
     // int q_width = (end_x - q.x);
@@ -186,8 +186,8 @@ __global__ void block_matching2(
     // }
     // s_data[tid] = min_stack;
     // __syncthreads();
-    if (bid == 13970) {
+    if (bid == 13970 && threadIdx.x == 0) {
         // printf("Tid: %d, x(%d), y(%d), dist(%d)\n", tid, min_stack.position.x, min_stack.position.y, min_stack.distance);
-        printf("Here\n");
+        printf("bid %d, ref_x %d, ref_y %d\n", bid, ref_x, ref_y);
     }
 }
