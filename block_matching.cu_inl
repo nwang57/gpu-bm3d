@@ -173,6 +173,7 @@ __global__ void block_matching2(
     int tid = threadIdx.x;
 
     extern __shared__ Q s_data[]; // to store the distance and the position
+    printf("bid %d creating share total ref: %d\n", bid, gridDim.x);
     Q min_stack(0,0,0xFFFFFFFF);
     for (uint i = tid * num_q_per_thread; i < min(size, (tid+1) * num_q_per_thread); i++) {
         int x = (i % q_width) + q.x;

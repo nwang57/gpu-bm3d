@@ -363,6 +363,13 @@ void Bm3d::denoise_fst_step() {
     bm.start();
     do_block_matching2(d_noisy_image, h_fst_step_params.distance_threshold_1);
     bm.stop();
+
+    cudaError_t code = cudaGetLastError();
+    if (code != cudaSuccess) {
+        fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(code));
+        return;
+    }
+
     //gather patches
     ab.start();
     arrange_block(d_noisy_image);
@@ -370,7 +377,7 @@ void Bm3d::denoise_fst_step() {
     // perform 3D dct transform;
 
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_FORWARD) != CUFFT_SUCCESS) {
-        fprintf(stderr, "CUFFT error: 3D Forward failed");
+        fprintf(stderr, "CUFFT error: 3D Forward failed\n");
         return;
     }
     ht.start();
@@ -379,7 +386,7 @@ void Bm3d::denoise_fst_step() {
     ht.stop();
     // perform inverse 3D dct transform;
     if (cufftExecC2C(plan3D, d_transformed_stacks, d_transformed_stacks, CUFFT_INVERSE) != CUFFT_SUCCESS) {
-        fprintf(stderr, "CUFFT error: 3D inverse failed");
+        fprintf(stderr, "CUFFT error: 3D inverse failed\n");
         return;
     }
 
