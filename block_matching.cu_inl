@@ -177,14 +177,14 @@ __global__ void block_matching2(
     for (uint i = tid * num_q_per_thread; i < min(size, (tid+1) * num_q_per_thread); i++) {
         int x = (i % q_width) + q.x;
         int y = (i / q_width) + q.y;
-    //     int dist = distance(image, make_uint2(ref_x, ref_y), make_uint2(x, y), patch_dim, image_dim.x);
+        // int dist = distance(image, make_uint2(ref_x, ref_y), make_uint2(x, y), patch_dim, image_dim.x);
         int dist = 1;
         if (dist < distance_threshold && dist < min_stack.distance) {
             min_stack.position = make_uint2(x, y);
             min_stack.distance = dist;
         }
     }
-    s_data[tid] = min_stack;
+    // s_data[tid] = min_stack;
     __syncthreads();
     if (bid == 16128 && threadIdx.x == 0) {
         printf("Tid: %d, x(%d), y(%d), dist(%d)\n", tid, min_stack.position.x, min_stack.position.y, min_stack.distance);

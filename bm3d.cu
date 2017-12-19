@@ -707,7 +707,8 @@ void Bm3d::do_block_matching2(uchar* input_image, const uint distance_threshold)
     Stopwatch bm_time;
     bm_time.start();
     const int threads_per_block = 512;
-    block_matching2<<<total_ref_patches, threads_per_block>>>(d_stacks, d_num_patches_in_stack, input_image, distance_threshold);
+    int s_mem_size = threads_per_block * sizeof(Q);
+    block_matching2<<<total_ref_patches, threads_per_block, s_mem_size>>>(d_stacks, d_num_patches_in_stack, input_image, distance_threshold);
     cudaDeviceSynchronize();
     bm_time.stop();
     // printf("Block Matching: %f\n", bm_time.getSeconds());
