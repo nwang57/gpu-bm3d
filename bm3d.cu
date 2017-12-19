@@ -292,11 +292,17 @@ void Bm3d::realtime_denoise(uchar *src_image,
     Stopwatch total;
     total.start();
     copy_image_to_device(src_image);
+
     clean_up_buffer();
+
     denoise_fst_step();
-    cudaMemset(d_transformed_stacks, 0, sizeof(cufftComplex) * h_fst_step_params.patch_size * h_fst_step_params.patch_size * h_fst_step_params.max_group_size * total_ref_patches);
-    denoise_2nd_step();
+
+    // cudaMemset(d_transformed_stacks, 0, sizeof(cufftComplex) * h_fst_step_params.patch_size * h_fst_step_params.patch_size * h_fst_step_params.max_group_size * total_ref_patches);
+
+    // denoise_2nd_step();
+
     cudaMemcpy(dst_image, d_denoised_image, sizeof(uchar) * h_width * h_height, cudaMemcpyDeviceToHost);
+
     total.stop();
     printf("Total computation time: %f\n", total.getSeconds());
 }
